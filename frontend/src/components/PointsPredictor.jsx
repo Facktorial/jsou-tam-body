@@ -41,12 +41,12 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
   const pointsResult = calculatePointsGoal();
 
   return (
-    <div className="bg-gray-900 p-4 rounded-lg border border-yellow-600 mt-4">
+    <div className="bg-gray-900 p-3 rounded-lg border border-yellow-600 mt-4">
       <div className="text-yellow-400 font-mono mb-4">
         <h4 className="font-semibold text-lg mb-2">Points Predictor</h4>
         
         {/* Display server data info */}
-        <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 text-xs sm:text-sm">
           <div>
             <span className="text-yellow-400">KS:</span>
             <span className="ml-2 text-yellow-200">{KS !== undefined && KS !== null ? KS.toFixed(2) : 'N/A'}</span>
@@ -55,7 +55,7 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
             <span className="text-yellow-400">KZ:</span>
             <span className="ml-2 text-yellow-200">{KZ.toFixed(2) || 'N/A'}</span>
           </div>
-          <div>
+          <div className="hidden sm:block">
             <span className="text-yellow-400">Coef:</span>
             <span className="ml-2 text-yellow-200">{BP || 'N/A'}</span>
           </div>
@@ -63,10 +63,21 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
         
         {/* Time input slider */}
         <div className="mb-4">
-          <label className="block text-blue-300 font-mono mb-2">
+          <label className="block text-blue-300 font-mono mb-2 text-xs sm:text-sm">
             Estimated Winner Time (minutes):
           </label>
-          <div className="flex items-center gap-4">
+          <div className="flex sm:hidden justify-center">
+            <input
+              type="number"
+              min="10"
+              max="180"
+              step="0.5"
+              value={estimatedWinTime}
+              onChange={handleTimeWinChange}
+              className="no-arrows bg-gray-800 px-3 py-2 rounded border border-blue-500 w-20 text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div className="hidden sm:flex items-center gap-2 sm:gap-4">
             <input
               type="range"
               min="10"
@@ -86,17 +97,28 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
               step="0.2"
               value={estimatedWinTime}
               onChange={handleTimeWinChange}
-              className="bg-gray-800 px-3 py-1 rounded border border-blue-500 min-w-[80px] text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="bg-gray-800 px-3 py-2 w-20 rounded border border-blue-500 min-w-[60px] sm:min-w-[80px] text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs sm:text-sm"
             />
           </div>
         </div>
         
         {/* Time input slider */}
         <div className="mb-4">
-          <label className="block text-blue-300 font-mono mb-2">
+          <label className="block text-blue-300 font-mono mb-2 text-xs sm:text-sm">
             Estimated My Time (minutes):
           </label>
-          <div className="flex items-center gap-4">
+          <div className="flex sm:hidden justify-center">
+            <input
+              type="number"
+              min="10"
+              max="180"
+              step="0.5"
+              value={estimatedTime}
+              onChange={handleTimeChange}
+              className="bg-gray-800 px-3 py-2 rounded border border-blue-500 w-20 text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+          <div className="hidden sm:flex items-center gap-2 sm:gap-4">
             <input
               type="range"
               min="10"
@@ -116,16 +138,16 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
               step="0.2"
               value={estimatedTime}
               onChange={handleTimeChange}
-              className="no-arrows bg-gray-800 px-3 py-1 rounded border border-blue-500 min-w-[80px] text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="no-arrows bg-gray-800 px-3 py-2 w-20 rounded border border-blue-500 min-w-[60px] sm:min-w-[80px] text-center text-blue-200 font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 text-xs sm:text-sm"
             />
           </div>
         </div>
         
         {/* Result display */}
-        <div className="bg-gray-800 p-3 rounded border border-blue-400">
+        <div className="bg-gray-800 sm:p-3 rounded border border-blue-400">
           { KS !== 0.00 ?
             (<div className="text-blue-300 font-mono mb-1 text-xs">
-              Formula: (2 - {estimatedTime}/{estimatedWinTime}) × {BP || 'coef'} × (1 - {KS.toFixed(2)}) × {KZ.toFixed(2)} 
+              Formula: (2 - {estimatedTime}/{estimatedWinTime}) × {BP || 'coef'} × (1 - {KS.toFixed(2)}){KZ !== 1.00 ? ` × ${KZ.toFixed(2)}` : ''}
               <div className="text-xs text-blue-600 mt-2">
                 <details>
                   <summary className="cursor-pointer">This is just aproximation</summary>
@@ -142,8 +164,8 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
             </div>
             )
             :
-            (<div className="text-blue-300 font-mono mb-1 text-xs">
-              Formula: (2 - {estimatedTime}/{estimatedWinTime}) × {BP || 'coef'} × {KZ.toFixed(2)} 
+            (<div className="text-blue-300 font-mono mb-1 text-xs break-all">
+              Formula: (2 - {estimatedTime}/{estimatedWinTime}) × {BP || 'coef'}{KZ !== 1.00 ? ` × ${KZ.toFixed(2)}` : ''}
             </div>)
           }
           <div className="text-blue-200 font-mono">
@@ -151,7 +173,8 @@ const PointsPredictor = ({ serverData, BP, category, rankingType }) => {
             <span className="ml-2 text-blue-100 font-bold text-lg">
               {pointsLoss}
             </span>
-            <span className="ml-1 text-blue-400 text-sm"> points/sec</span>
+            <span className="sm:hidden ml-1 text-blue-400 text-sm"> pts/s</span>
+            <span className="hidden sm:inline ml-1 text-blue-400 text-sm"> points/sec</span>
           </div>
           <div className="text-blue-200 font-mono">
             <span className="text-blue-300">Estimated result:</span>

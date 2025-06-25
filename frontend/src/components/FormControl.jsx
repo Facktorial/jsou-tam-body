@@ -2,7 +2,7 @@ import StatusMessages from './StatusMessage';
 import DataVisualization from './DataVisualization';
 
 const FormControls = ({ 
-  id, setId, hOrDCategory, setHOrDCategory, category, setCategory, 
+  id, setId, hOrDCategory, setHOrDCategory, category, setCategory, forcingAge,
   rankingType, setRankingType, requestStatus, availableOptions,
   handleInitialRequest, isInitialLoading, rankingTypeNames,
 
@@ -27,7 +27,7 @@ const FormControls = ({
           value={id}
           onChange={(e) => setId(e.target.value)}
           placeholder="Enter Race ID (try 123, 456, or 999)"
-          className="flex-1 p-2 bg-gray-900 border border-yellow-600 rounded text-yellow-200 placeholder-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono"
+          className="flex-1 min-w-0 sm:flex-1 md:w-48 lg:w-64 p-2 bg-gray-900 border border-yellow-600 rounded text-yellow-200 placeholder-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono"
         />
         <select
           value={hOrDCategory}
@@ -39,7 +39,7 @@ const FormControls = ({
           <option value="D" className="bg-gray-900 text-yellow-200">D</option>
         </select>
         <button
-          onClick={handleInitialRequest}
+          onClick={() => handleInitialRequest(id, hOrDCategory, forcingAge)}
           disabled={!id.trim() || !hOrDCategory || isInitialLoading}
           className="px-4 py-2 bg-yellow-600 text-black rounded hover:bg-yellow-500 disabled:bg-gray-700 disabled:text-gray-400 font-mono font-bold"
         >

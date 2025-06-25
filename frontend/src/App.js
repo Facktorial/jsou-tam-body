@@ -3,6 +3,7 @@ import ServerConfig from './components/ServerConfig';
 import FormControls from './components/FormControl';
 import ServerResponse from './components/ServerResponse';
 import useMockData from './hooks/useMockData';
+import { useParams } from 'react-router-dom'; // ⬅️ ADD THIS
 
 
 export default function KolikTamJeBoduView() {
@@ -20,6 +21,30 @@ export default function KolikTamJeBoduView() {
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [forcingAge, setForcingAge] = useState(true);
   const [enabledPredictor, setEnablingPredictor] = useState(true);
+
+  const { eventId, gender, forceAge } = useParams();
+  useEffect(() => {
+    if (eventId && gender) {
+      setId(eventId);
+      setHOrDCategory(gender);
+      if (forceAge)
+      {
+        setForcingAge(forceAge === forcingAge);
+      }
+      else
+      {
+        setForcingAge(true);
+      }
+      // handleInitialRequest();
+      //handleInitialRequest(eventId, gender, forceAge);
+    }
+  }, [eventId, gender, forceAge]);
+
+  useEffect(() => {
+    if (id.trim() && hOrDCategory) {
+      handleInitialRequest(id, hOrDCategory, forcingAge);
+    }
+  }, [id, hOrDCategory]);
 
   const { mockInitialResponse, mockServerResponse, detailsList } = useMockData();
 
@@ -74,8 +99,8 @@ export default function KolikTamJeBoduView() {
     return getRunners().slice(0, 4).filter(runner => runner.racerCoef >= 0); // Filter out 0 coef runners
   };
 
-  const handleInitialRequest = async () => {
-    if (!id.trim() || !hOrDCategory) return;
+  const handleInitialRequest = async (eventId, gcategory, forceAge) => {
+    //if (!id.trim() || !hOrDCategory) return;
     
     setIsInitialLoading(true);
     setRequestStatus('idle');
@@ -85,9 +110,9 @@ export default function KolikTamJeBoduView() {
     setServerData(null);
     
     //const requestUrl = `http://localhost:8000/api/${id}/${hOrDCategory}/${forcingAge}`;
-    const requestUrl = `${serverUrl}/api/${id}/${hOrDCategory}/${forcingAge}`;
+    const requestUrl = `${serverUrl}/api/${eventId}/${gcategory}/${forceAge}`;
     console.log('Sending initial request to:', requestUrl);
-    console.log('Request parameters:', { raceId: id, category: hOrDCategory, forceAge: forcingAge });
+    console.log('Request parameters:', { raceId: eventId, category: gcategory, forceAge: forceAge });
     
     try {
       const response = await fetch(requestUrl, {
@@ -214,6 +239,7 @@ export default function KolikTamJeBoduView() {
             setId={setId}
             hOrDCategory={hOrDCategory}
             setHOrDCategory={setHOrDCategory}
+            forcingAge={forcingAge}
             category={category}
             setCategory={setCategory}
             rankingType={rankingType}
