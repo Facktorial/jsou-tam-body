@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app:cached              # Mount source code
+      - backend-cache:/app/.stack-work  # Cache builds
+    environment:
+      - PORT=8000
+    stdin_open: true
+    tty: true
+
+volumes:
+  backend-cache:
