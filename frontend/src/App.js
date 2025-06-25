@@ -16,7 +16,7 @@ export default function KolikTamJeBoduView() {
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [requestStatus, setRequestStatus] = useState('idle');
-  const [serverUrl, setServerUrl] = useState('http://localhost:8000/api');
+  const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app')
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [forcingAge, setForcingAge] = useState(true);
   const [enabledPredictor, setEnablingPredictor] = useState(true);
@@ -84,7 +84,8 @@ export default function KolikTamJeBoduView() {
     setRankingType('');
     setServerData(null);
     
-    const requestUrl = `http://localhost:8000/api/${id}/${hOrDCategory}/${forcingAge}`;
+    //const requestUrl = `http://localhost:8000/api/${id}/${hOrDCategory}/${forcingAge}`;
+    const requestUrl = `${serverUrl}/api/${id}/${hOrDCategory}/${forcingAge}`;
     console.log('Sending initial request to:', requestUrl);
     console.log('Request parameters:', { raceId: id, category: hOrDCategory, forceAge: forcingAge });
     
