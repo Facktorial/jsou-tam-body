@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/jsou-tam-body/static/css/main.9ae2af37.css",
+    "main.js": "/jsou-tam-body/static/js/main.d1113567.js",
+    "static/js/453.d855a71b.chunk.js": "/jsou-tam-body/static/js/453.d855a71b.chunk.js",
+    "index.html": "/jsou-tam-body/index.html",
+    "main.9ae2af37.css.map": "/jsou-tam-body/static/css/main.9ae2af37.css.map",
+    "main.d1113567.js.map": "/jsou-tam-body/static/js/main.d1113567.js.map",
+    "453.d855a71b.chunk.js.map": "/jsou-tam-body/static/js/453.d855a71b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9ae2af37.css",
+    "static/js/main.d1113567.js"
+  ]
+}
