@@ -3,7 +3,7 @@ import ServerConfig from './components/ServerConfig';
 import FormControls from './components/FormControl';
 import ServerResponse from './components/ServerResponse';
 import useMockData from './hooks/useMockData';
-import { useParams } from 'react-router-dom'; // ⬅️ ADD THIS
+import { useParams } from 'react-router-dom';
 
 
 export default function KolikTamJeBoduView() {

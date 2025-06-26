@@ -1,15 +1,17 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  backend-dev:
+  api:
+    #image: kde-jsou-body-api:latest
+    container_name: kde-jsou-body-api
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - .:/app:cached              # Mount source code
-      - backend-cache:/app/.stack-work  # Cache builds
+      - .:/app:cached # Mount source code
+      - backend-cache:/app/.stack-work # Cache builds
     environment:
       - PORT=8000
     stdin_open: true
