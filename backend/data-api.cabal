@@ -14,7 +14,6 @@ library
       ORISScrapper
   other-modules:
       CSVator
-      EventAnalyzer
       Types
       Paths_data_api
   hs-source-dirs:
@@ -44,7 +43,6 @@ executable data-api
   main-is: Main.hs
   other-modules:
       CSVator
-      EventAnalyzer
       ORISScrapper
       Types
       Paths_data_api

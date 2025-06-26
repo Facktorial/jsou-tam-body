@@ -1,2 +1,3 @@
 backend/.stack-work
+backend/data-api.cabal
 frontend/node-modules

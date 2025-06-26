@@ -87,9 +87,6 @@ downloadAndLoadCsv gender date rankingType = do
         Left err -> return $ Left $ "CSV parsing failed: " ++ err
         Right records -> return $ Right records
 
---parseCSV :: Text -> Either String CSVData
---parseCSV csvText = 
-  --case decodeWith csvOptions NoHeader (LBS.fromStrict $ TE.encodeUtf8 csvText) of
 parseCSV :: BL.ByteString -> Either String CSVData
 parseCSV csvData =
   case decodeWith csvOptions NoHeader csvData of
@@ -98,9 +95,7 @@ parseCSV csvData =
       case V.uncons records of
         Nothing -> Right V.empty
         Just (headerRow, dataRows) -> 
-          --let headers = V.toList $ V.map S8.unpack headerRow
           let headers = V.toList $ V.map (T.unpack . TE.decodeUtf8) headerRow
-              --convertRow row = Map.fromList $ zip headers (map BS8.unpack $ V.toList row)
               convertRow row = Map.fromList $ zip headers (map (T.unpack . TE.decodeUtf8) $ V.toList row)
           in Right $ V.map convertRow dataRows
   where

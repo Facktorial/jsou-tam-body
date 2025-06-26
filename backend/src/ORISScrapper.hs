@@ -187,8 +187,6 @@ extractThatEntry (Object obj) = do
               Nothing -> Success Nothing
 extractThatEntry _ = Success Nothing
 
---extractJsonContent :: String -> Value -> Either String [Category]
---extractJsonContent field jsonData = case jsonData of
 getCategories :: Value -> Either String [Category]
 getCategories jsonData = case jsonData of
     Object obj -> do
@@ -214,7 +212,6 @@ getCategories jsonData = case jsonData of
 parseCategory :: (KM.Key, Value) -> Result (Maybe Category)
 parseCategory (key, value) = 
   --Debug.Trace.traceShow ("parseCategory key: " ++ show key) $
-  --Debug.Trace.traceShow ("parseCategory value: " ++ show value) $
   case value of
     Object obj -> case KM.lookup "Name" obj of
       Just (String clsName) -> Success $ Just $ T.unpack clsName
@@ -302,7 +299,6 @@ calcPB pbs
               (\(_, coef) -> coef)
              (take pbCount pbs)
 
---getRacer :: Int -> RunnerInfo -> (Name, Ranking, Coef)
 getRacer :: Int -> RunnerInfo -> RacerResult
 getRacer rT info = RacerResult name rank coef
   where
@@ -310,28 +306,23 @@ getRacer rT info = RacerResult name rank coef
     rank = runnersRank ((runnerRankings info) !! rT)
     coef = runnersCoef ((runnerRankings info) !! rT)
 
---analyzeEvent :: Age -> Int -> String -> IO [Text] 
 analyzeEvent :: Age -> Int -> String -> IO (Either Text EventAnalResult)
 analyzeEvent age_in id gender = do    
     eventResult <- getEvent id
     categoriesResult <- handleEvents eventResult
 
     case categoriesResult of
-      --Left err -> return [T.pack err]
       Left err -> return (Left $ T.pack err)
       Right categories -> do
           entriesRaw <- mapM (\cls -> getEventEntries id cls) categories
 
           --let _hole = entriesRaw :: _
-          --let entries = filterEntriesByCategories (makeEntries $ rights entriesRaw) categories 
           let entries =  mapM makeEntries (rights entriesRaw) 
           let entriesResult = zip categories (concat $ rights [entries])
 
           rankings <- getActualRankings getLastRankingVersion
           case rankings of
-            --Left err -> return [T.pack err]
             Left err -> return (Left $ T.pack err)
-            --Left err -> putStrLn err
             Right ranks -> do
               -- FIXME: 
               let raceGender = if gender == "H" then "M" else "F"
@@ -339,7 +330,7 @@ analyzeEvent age_in id gender = do
               
               let results = processEntries entriesResult genderRankings 
 
-              let fourCoefs rT = Map.fromListWith (flip (++))
+              let runnersByRanking rT = Map.fromListWith (flip (++))
                                 [(categ, [(runnerName runner, runnersCoef $ (runnerRankings runner) !! rT)])
                                   | categ <- Map.keys partialResult
                                   , runner <- Map.findWithDefault [] categ partialResult
@@ -347,8 +338,8 @@ analyzeEvent age_in id gender = do
                                 where
                                   partialResult = sortRunners rT results
 
-              let analResult = Map.fromList
-                    [(rT, fourCoefs rT) | rT <- myRankingTypes] 
+              let allRunnersAllRankings = Map.fromList
+                    [(rT, runnersByRanking rT) | rT <- myRankingTypes] 
 
               let pbResults = Map.fromList 
                     [ (rT, Map.fromList 
@@ -358,7 +349,7 @@ analyzeEvent age_in id gender = do
                     | rT <- myRankingTypes
                     ]
                       where
-                        pbs     r = fromJust $ Map.lookup r analResult
+                        pbs     r = fromJust $ Map.lookup r allRunnersAllRankings
                         bests c r = fromJust $ Map.lookup c (pbs r)
 
               let pouredRacers = Map.fromList
@@ -375,15 +366,8 @@ analyzeEvent age_in id gender = do
               mapM_ print (Map.toList pbResults)
 
               let result = EventAnalResult pouredRacers pbResults
-              --return [T.pack $ show result]
-              --return [prettyJSONToText result]
               return (Right result)
 
-          --print(entriesResult)
-
-          --let result = ("event: ", Right categories)
-          --return [formatResult (intercalate ", ") result]
-          --return $ T.pack $ show result
   where 
     age = if age_in > 0 then show age_in else ""
 
@@ -392,11 +376,6 @@ analyzeEvent age_in id gender = do
 
     handleCategories (Left err) = return $ Left $ "Failed to parse categories: " ++ err
     handleCategories (Right categories) = do
-
-        -- Debug.Trace.traceShow (categories) (return ())
-        --
-        -- let prefix = T.pack $ gender ++ show age
-        -- Debug.Trace.traceShow ("prefix", prefix) (return ())
 
         let filtered = filter 
                         (T.isPrefixOf (T.pack $ gender ++ age) . T.pack)
@@ -430,22 +409,16 @@ runOrisWithOutput = do
 -- Helper functions for working with the data
 
 -- | Pretty print JSON response
-prettyPrintJson :: Value -> IO ()
-prettyPrintJson = LBS.putStrLn . encodePretty
-
--- | Extract specific field from JSON response
-extractField :: Text -> Value -> Maybe Value
-extractField fieldName (Object obj) = case fromJSON (Object obj) of
-  Success val -> Just val
-  Error _ -> Nothing
-extractField _ _ = Nothing
-
--- | Convert CSV records to JSON for easier processing
-csvToJson :: V.Vector (Map.Map String String) -> Value
-csvToJson records = Array $ V.map (Object . fromList . map (\(k, v) -> (fromText $ T.pack k, String $ T.pack v)) . Map.toList) records
-
-  -- Test rankings (uncomment to test with actual dates)
-  -- rankingResult <- downloadRankings "2024-01-01" "2024-12-31"
-  -- case rankingResult of
-  --   Left err -> putStrLn $ "Ranking error: " ++ err
-  --   Right rankings -> putStrLn $ "Rankings downloaded: " ++ show (Map.keys rankings)
+-- prettyPrintJson :: Value -> IO ()
+-- prettyPrintJson = LBS.putStrLn . encodePretty
+-- 
+-- -- | Extract specific field from JSON response
+-- extractField :: Text -> Value -> Maybe Value
+-- extractField fieldName (Object obj) = case fromJSON (Object obj) of
+--   Success val -> Just val
+--   Error _ -> Nothing
+-- extractField _ _ = Nothing
+-- 
+-- -- | Convert CSV records to JSON for easier processing
+-- csvToJson :: V.Vector (Map.Map String String) -> Value
+-- csvToJson records = Array $ V.map (Object . fromList . map (\(k, v) -> (fromText $ T.pack k, String $ T.pack v)) . Map.toList) records

@@ -31,10 +31,6 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy.Char8 as L8
 
 
---prettyJSON :: ToJSON a => a -> String
---prettyJSON = L8.unpack . encodePretty
-
--- Simple data types
 data ApiResponse = ApiResponse
   { message :: Text
   , eventResult :: Maybe EventAnalResult
@@ -76,12 +72,8 @@ captureAnalysis id category forceAge = do
   result <- try $ analyzeEvent age id category
   case result of
     Left e -> return (Left $ T.pack $ "Error running ORIS: " ++ show (e:: SomeException))
-    --Right output -> return output
-    --Right output -> return [TL.toStrict . TL.decodeUtf8 $ prettyJSON output]
-    --Right output -> return [prettyJSONToText output]
     Right output -> return output
 
--- Handlers
 helloHandler :: Handler ApiResponse
 helloHandler = do
   logRequest "GET /api/hello"
@@ -96,13 +88,10 @@ helloHandler = do
 analyzeHandler :: Int -> String -> Bool -> Handler ApiResponse
 analyzeHandler eventId racerGender forceAge = do
   logRequest $ "GET /api/" ++ show eventId ++ "/" ++ racerGender ++ "/" ++ show forceAge
-  --analysisResult <- liftIO $ captureAnalysis eventId (racerGender ++ "21")
   analysisResult <- liftIO $ captureAnalysis eventId racerGender forceAge
   rankingTypes <- liftIO $ getRankingTypes
   eventInfo <- liftIO $ extractEventInfo eventId
-  --return $ ApiResponse
-  --  ("Analysis for event " <> T.pack (show eventId ++ "," ++ racerGender))
-  --  analysisResult
+
   case analysisResult of
     Left err -> return $ ApiResponse
       ("Analysis failed for event " <> T.pack (show eventId ++ "," ++ racerGender))
@@ -119,15 +108,6 @@ analyzeHandler eventId racerGender forceAge = do
         Right value -> value)
       eventInfo
 
-
--- server :: Server API
--- server = do
---   --orisResult <- liftIO captureRunOris
---   orisResult <- liftIO $ captureAnalysis 8972
---   return $ ApiResponse
---     --("Hello from Haskell!" <> T.unlines orisResult)
---     ("Hello from Haskell!")
---     orisResult
 
 server :: Server API
 server = helloHandler :<|> analyzeHandler
@@ -147,7 +127,6 @@ main = do
   port <- maybe 8000 read <$> lookupEnv "PORT"
   --putStrLn $ "🚀 Haskell API running on port " ++ show port
   putStrLn $ "Haskell API running on port " ++ show port
-  --putStrLn "📡 Endpoint: /api/hello"
   putStrLn "Endpoint:"
   putStrLn "  /api/hello"
   putStrLn "  /api/{id}/{gender}"
