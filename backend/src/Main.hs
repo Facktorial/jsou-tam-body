@@ -79,7 +79,7 @@ helloHandler = do
   logRequest "GET /api/hello"
   orisResult <- liftIO captureRunOris
   return $ ApiResponse
-    "Hello from Haskell!"
+    "\_ -> Hello from Haskell!"
     Nothing
     (Just $ T.unlines orisResult)
     Null
