@@ -1,16 +1,30 @@
-FROM haskell:9.4.8-slim
-
+# Build stage - this will be discarded
+FROM haskell:9.4.8-slim as builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y libtinfo-dev
 
-RUN apt-get update && apt-get install -y inotify-tools libtinfo-dev
+# Copy dependency files
+COPY stack.yaml data-api.cabal ./
+RUN stack setup && stack build --only-dependencies --jobs=4 --fast
 
-COPY stack.yaml package.yaml ./
-RUN stack setup && stack build --only-dependencies
-
-RUN stack install hpack
+# Copy source and build
 COPY . .
-
-RUN stack exec -- hpack
 RUN stack build --copy-bins --fast --ghc-options="-j4 -O0"
 
-CMD ["./.stack-work/install/x86_64-linux/*/8.*/bin/data-api"]
+# Runtime stage - ONLY the binary
+FROM ubuntu:22.04 as runtime
+WORKDIR /app
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libtinfo6 \
+    libgmp10 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy ONLY the compiled binary from builder stage
+COPY --from=builder /app/.stack-work/install/x86_64-linux/*/8.*/bin/data-api ./data-api
+
+# Make sure it's executable
+RUN chmod +x ./data-api
+
+CMD ["./data-api"]
