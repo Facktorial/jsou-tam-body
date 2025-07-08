@@ -2,6 +2,11 @@
 buildTimeout = 3600 # 1 hour
 
 [deploy]
-healthcheckPath = "/"
-healthcheckTimeout = 300
+# Remove healthcheck or set to a route that exists
+#healthcheckPath = "/"
+#healthcheckTimeout = 300
 restartPolicyType = "on_failure"
+
+# Enable build cache (if available)
+[build.cache]
+paths = [".stack-work"]
