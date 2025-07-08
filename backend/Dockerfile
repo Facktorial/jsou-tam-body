@@ -11,6 +11,6 @@ RUN stack install hpack
 COPY . .
 
 RUN stack exec -- hpack
-RUN stack build --copy-bins
+RUN stack build --copy-bins --fast --ghc-options="-j4 -O0"
 
 CMD ["./.stack-work/install/x86_64-linux/*/8.*/bin/data-api"]
