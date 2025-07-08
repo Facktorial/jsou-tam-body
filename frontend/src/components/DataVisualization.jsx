@@ -1,11 +1,28 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const DataVisualization = ({
-  getCurrentRankingData, availableOptions, category, rankingType, setRankingType, serverData, rankingTypeNames
+  getCurrentRankingData,
+  availableOptions,
+  category,
+  rankingType,
+  setRankingType,
+  serverData,
+  rankingTypeNames
 }) => {
   const currentData = getCurrentRankingData();
 
-  //if (!currentData) return null;
+  const simplifyRankingLabel = (label) => {
+    const monthsMatch = label.match(/(\d+)\s*(měsíc(ů)?|events?)/i);
+    const racesMatch = label.match(/(\d+)\s*(závod(ů)?|events?)/i);
+    const prefix = label.split('-')[0].replace(/ranking/i, '').trim();
+
+    const months = monthsMatch ? monthsMatch[1] + 'm' : '';
+    const races = racesMatch ? racesMatch[1] : '';
+    const suffix = `${months}${races}`;
+
+    return suffix ? `${prefix} - ${suffix}` : prefix;
+  }
+
   const getCategoryData = () => {
     if (!serverData || serverData.error || !category) return null;
 
@@ -27,7 +44,7 @@ const DataVisualization = ({
         rankingTypeValue: currentRankingType.value,
         count: 1,
         total: 1.00,
-        isSelected: rankingType == currentRankingType.value,
+        isSelected: rankingType === currentRankingType.value,
       };
     }).filter(Boolean);
     
@@ -57,9 +74,11 @@ const DataVisualization = ({
             <XAxis 
               dataKey="name" 
               tick={{ fontSize: 10, fill: '#FDE047' }}
-              angle={-45}
+              angle={-30}
               textAnchor="end"
               height={60}
+              tickFormatter={simplifyRankingLabel}
+              interval={0}
             />
             <YAxis
               tick={{ fontSize: 10, fill: '#FDE047' }}

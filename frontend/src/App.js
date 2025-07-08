@@ -3,7 +3,8 @@ import ServerConfig from './components/ServerConfig';
 import FormControls from './components/FormControl';
 import ServerResponse from './components/ServerResponse';
 import useMockData from './hooks/useMockData';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+//import { PiRankingFill } from "react-icons/pi";
 
 
 export default function KolikTamJeBoduView() {
@@ -21,6 +22,8 @@ export default function KolikTamJeBoduView() {
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [forcingAge, setForcingAge] = useState(true);
   const [enabledPredictor, setEnablingPredictor] = useState(true);
+
+  const navigate = useNavigate();
 
   const { eventId, gender, forceAge } = useParams();
   useEffect(() => {
@@ -164,6 +167,7 @@ export default function KolikTamJeBoduView() {
       } else {
         setRequestStatus('error');
         console.log('Server error:', data?.error || 'Unknown error');
+        setServerData(data?.message);
       }
       
     } catch (error) {
@@ -215,6 +219,12 @@ export default function KolikTamJeBoduView() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-yellow-400">Jsou tam body?</h2>
+            <button
+              className="text-xs px-2 py-1 bg-gray-800 text-yellow-200 border border-yellow-600 rounded font-mono hover:bg-yellow-600 hover:text-black"
+              onClick={() => navigate('/personal/')}
+            >
+              My records
+            </button>
             <button
               onClick={() => setShowServerConfig(!showServerConfig)}
               className="text-xs px-2 py-1 bg-gray-800 text-yellow-200 border border-yellow-600 rounded font-mono hover:bg-yellow-600 hover:text-black"

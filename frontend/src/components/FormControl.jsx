@@ -26,7 +26,7 @@ const FormControls = ({
           type="text"
           value={id}
           onChange={(e) => setId(e.target.value)}
-          placeholder="Enter Race ID (try 123, 456, or 999)"
+          placeholder="Enter Race ID (try 8883 or 8960)"
           className="flex-1 min-w-0 sm:flex-1 md:w-48 lg:w-64 p-2 bg-gray-900 border border-yellow-600 rounded text-yellow-200 placeholder-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 font-mono"
         />
         <select
@@ -53,10 +53,22 @@ const FormControls = ({
             <summary className="cursor-pointer">{serverData?.eventInfo.eventName}</summary>
             <ul className="mt-1 ml-4">
                 <li className="text-yellow-500">• {serverData?.eventInfo.eventDiscipline}</li>
-                <li className="text-yellow-500">• {serverData?.eventInfo.eventPlace}</li>
+                {serverData?.eventInfo.eventPlace
+                  ? <li className="text-yellow-500">• {serverData?.eventInfo.eventPlace}</li>
+                  : ""
+                }
             </ul>
           </details>
         </div>
+      )}
+      {requestStatus === 'error' && (
+        <StatusMessages
+          requestStatus={requestStatus}
+          id={id}
+          response={serverData}
+          availableOptions={availableOptions}
+          serverData={serverData}
+        />
       )}
 
       <select
@@ -115,14 +127,6 @@ const FormControls = ({
 };
 
 export default FormControls;
-      // <StatusMessages
-      //   requestStatus={requestStatus}
-      //   id={id}
-      //   mockInitialResponse={mockInitialResponse}
-      //   availableOptions={availableOptions}
-      //   serverData={serverData}
-      // />
-
       // {/* Debug information - remove in production */}
       // {availableOptions?.rankingTypeNames && (
       //   <div className="text-xs text-yellow-600 mt-2">
