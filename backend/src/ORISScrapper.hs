@@ -5,6 +5,7 @@
 module ORISScrapper where
 import CSVator
 import Types
+import Utils
 
 import Network.HTTP.Simple
 import Data.Aeson
@@ -19,7 +20,7 @@ import Control.Exception (try, SomeException)
 import GHC.Generics
 import Data.Maybe (fromMaybe, catMaybes, listToMaybe, fromJust, isJust)
 import qualified Data.Map as Map
-import Data.List (intercalate, isPrefixOf)
+import Data.List (intercalate, isPrefixOf, find)
 import qualified Debug.Trace
 import Data.Either (rights)
 import Text.Read (readMaybe)
@@ -48,7 +49,7 @@ makeApiRequest url params = do
   let request = setRequestQueryString queryParams baseRequest
       queryParams = map (\(k, v) -> (BS.pack k, Just $ BS.pack v)) params
 
-  Debug.Trace.traceIO ("Request:\n" ++ show request)
+  --Debug.Trace.traceIO ("Request:\n" ++ show request)
   
   result <- try $ httpJSON request
   case result of
@@ -70,6 +71,11 @@ getRankingTypes = makeJsonApiRequest "getRankingTypes" params
   where
     params = [("sport", "1")]
 
+getUser :: RegNo -> IO (Either String Value)
+getUser userId = makeJsonApiRequest "getUser" params
+  where
+    params = [("rgnum", userId)]
+
 getEvent :: Int -> IO (Either String Value)
 getEvent eventId = makeJsonApiRequest "getEvent" params
   where
@@ -87,19 +93,59 @@ getEventEntries eventId cls = makeJsonApiRequest "getEventEntries" params
 --     params = [("format", "json"), ("method", "getEventResults"), ("eventid", show eventId)]
 
 getEventRankResults :: Int -> IO (Either String Value)
-getEventRankResults eventId = makeApiRequest baseUrl params
+getEventRankResults eventId = makeJsonApiRequest "getEventRankResults" params
   where
-    params = [("format", "json"), ("method", "getEventRankResults"), ("eventid", show eventId)]
+    params = [("eventid", show eventId)]
 
-getUserEntries :: Int -> IO (Either String Value)
-getUserEntries userId = makeApiRequest baseUrl params
+getPoints :: Int -> RegNo -> IO Int
+getPoints eventId regno = do
+  results <- getEventRankResults eventId
+
+  case results of
+    Right (Object obj) -> do
+      case KM.lookup "Data" obj of
+        Just (Object dataObj) -> do
+          let userEntries = KM.toList dataObj
+              matchingEntry = find (isMatchingUser regno) userEntries
+          case matchingEntry of
+            Just (_, Object userResults) -> do
+              let pointsText = extractText "Points" userResults
+              case readMaybe (T.unpack pointsText) of
+                Just points -> return points
+                Nothing -> return 0
+            _ -> return 0
+        Just (Array arr) | V.null arr -> return 0
+        _ -> return 0
+    _ -> return 0
   where
-    params = [("format", "json"), ("method", "getUserEventEntries"), ("userid", show userId)]
+    isMatchingUser :: String -> (KM.Key, Value) -> Bool
+    isMatchingUser targetUserId (_, Object userResults) = 
+      T.unpack (extractText "RegNo" userResults) == targetUserId
+    isMatchingUser _ _ = False
 
--- getSomething :: String -> String -> Int -> IO (Either String Value)
--- getSomething method idType idValue = makeApiRequest baseUrl params
---   where
---     params = [("format", "json"), ("method", method), (idType, show idValue)]
+getUserEventEntries :: String -> IO (Either String Value)
+getUserEventEntries userId = makeJsonApiRequest "getUserEventEntries" params
+  where
+    params = [("userid", userId)]
+
+getUserID :: RegNo -> IO (Maybe String)
+getUserID regno = do
+  mUId <- getUser regno
+
+  return $ case mUId of
+    Right (Object obj) ->
+      case KM.lookup "Data" obj of
+        Just (Object objData) -> Just $ T.unpack $ extractText "ID" objData
+        _ -> Nothing
+    _ -> Nothing
+
+getUserEntries :: RegNo -> IO (Either String Value)
+getUserEntries regno = do
+  mUserId <- getUserID regno
+  
+  case mUserId of
+    Just userId -> getUserEventEntries userId 
+    _ -> return $ Left "No such looser"
 
 extractText :: KM.Key -> KM.KeyMap Value -> Text
 extractText key obj =
@@ -110,8 +156,54 @@ extractText key obj =
 readDoubleFromCSV :: T.Text -> Maybe Double
 readDoubleFromCSV = readMaybe . T.unpack . T.replace "," "."
 
-extractEventInfo :: Int -> IO (Maybe EventInfo)
-extractEventInfo eventId = do
+extractRacesInfo :: RegNo -> IO ([Event])
+extractRacesInfo regno = do
+  events <- getUserEntries regno
+
+  case events of
+    Right (Object obj) ->
+      --Debug.Trace.traceShow obj $
+      case KM.lookup "Data" obj of
+        Just (Object dataObj) -> do
+          let eventList = map snd (KM.toList dataObj)
+          mapM processEvent eventList
+        _ -> return []
+    _ -> return []
+  where
+    processEvent :: Value -> IO (Event)
+    processEvent (Object event) = do
+      let evId    = read $ T.unpack $ extractText "EventID" event
+          classID =        T.unpack $ extractText "ClassID" event
+          evDate  =        T.unpack $ extractText "EventDate" event
+      --Debug.Trace.traceShow ("     +++++" ++ show event) (return ())
+
+      mbEvent <- extractEventInfo evId classID
+
+      toFilterByDate <- checkWithinTwoYears evDate
+
+      points <- if (toFilterByDate && maybe False eventRanked mbEvent)
+                    then getPoints evId regno
+                    else return 0
+
+      case mbEvent of
+        Just eventInfo -> do
+          let evDisc = eventDiscipline eventInfo
+              evDiID = eventDisciplineID eventInfo
+              evName = eventName eventInfo
+          return $ Event
+            evId
+            evName
+            (if toFilterByDate then evDate else "Too old/new")
+            points
+            evDisc
+            evDiID
+        Nothing -> do
+          return $ Event evId (EvName "Unknown") evDate points (Discipline "Unknown") (-1)
+    processEvent _ = do
+      return $ Event 0 (EvName "Invalid") "" 0 (Discipline "Invalid") (-1)
+
+extractEventInfo :: Int -> String -> IO (Maybe EventInfo)
+extractEventInfo eventId classID = do
   response <- getEvent eventId
 
   case response of
@@ -123,6 +215,10 @@ extractEventInfo eventId = do
                 Just (Object disObj) ->
                   extractText "NameEN" disObj
                 _ -> ""
+              discID = case KM.lookup "Discipline" dataObj of
+                Just (Object disObj) ->
+                  read $ T.unpack $ extractText "ID" disObj
+                _ -> -1
               plac = Place $ extractText "Place" dataObj
               ks = Koef $ maybe
                 0.00
@@ -132,8 +228,19 @@ extractEventInfo eventId = do
                 1.00
                 id
                 (readDoubleFromCSV $ extractText "RankingKoef" dataObj)
+              isRanked = case classID of
+                "" -> False
+                clsID ->
+                  case KM.lookup "Classes" dataObj of
+                    Just (Object cls) ->
+                      --Debug.Trace.traceShow cls $
+                      --Debug.Trace.traceShow clsID $
+                      case KM.lookup (K.fromText $ T.pack $ "Class_" ++ clsID) cls of
+                        Just (Object raceCls) -> (T.unpack $ extractText "Ranking" raceCls) == "1"
+                        _ -> False
+                    _ -> False
 
-          return $ Just (EventInfo name disc plac ks kz)
+          return $ Just (EventInfo name disc discID plac ks kz isRanked)
         _ -> return Nothing
     _ -> return Nothing
 
@@ -181,7 +288,7 @@ extractThatEntry (Object obj) = do
         getter obj = 
             case KM.lookup "RegNo" obj of
               Just (String num) -> 
-                Debug.Trace.traceShow (": " ++ show num) $
+                --Debug.Trace.traceShow (": " ++ show num) $
                 Success $ Just $ T.unpack num
               Just _ -> Error "RegNo field exists but is not a string or number"
               Nothing -> Success Nothing
@@ -273,6 +380,31 @@ extractRunnerInfo regno table = RankingInfo
                 , read $ fromJust $ Map.lookup "Rank.c" results
                 )
  
+-- NOTE: i got feeling than browsing 18 instead of 9 CVS is faster, than getting gender
+-- via request for events of given user and then parsing gender from class
+fetchStandings :: RegNo -> IO (Either String Standings)
+fetchStandings regno = do
+  csvsData <- getRankingsData
+
+  case csvsData of
+    Left err -> return $ Left err
+    Right rankingsData -> do 
+        let mansRanking = fromJust $ Map.lookup "M" rankingsData
+            womansRanking = fromJust $ Map.lookup "F" rankingsData
+
+        let rankingAsAMan = mkRunnerInfo mansRanking regno
+            rankingAsAWoman = mkRunnerInfo womansRanking regno
+
+        --mapM_
+          --(\r -> mapM_  print  [runnersRank r, runnersPoints r, runnersCoef r])
+          --(runnerRankings rankingAsAMan)
+
+        return $ Right $ Standings $ Map.fromList [
+            ("M", rankingAsAMan),
+            ("F", rankingAsAWoman)
+            ]
+
+
 getNBestByType :: Int -> CategoryPoints -> CategoryPoints
 getNBestByType amount runners = Map.map (take amount) runners
 
@@ -291,7 +423,7 @@ calcPB :: [(Name, Points)] -> Double
 calcPB pbs
   | length pbs < pbCount = 0
   | otherwise =
-        Debug.Trace.traceShow (pbs) $
+        --Debug.Trace.traceShow (pbs) $
         (1.0 / fromIntegral pbCount) * fromIntegral totalCoef
       where
         totalCoef = sum $
@@ -350,7 +482,9 @@ analyzeEvent age_in id gender = do
                     ]
                       where
                         pbs     r = fromJust $ Map.lookup r allRunnersAllRankings
-                        bests c r = fromJust $ Map.lookup c (pbs r)
+                        bests c r = case Map.lookup c (pbs r) of
+                                      Nothing -> []
+                                      Just x -> x
 
               let pouredRacers = Map.fromList
                     [(rT, Map.fromList
@@ -363,7 +497,7 @@ analyzeEvent age_in id gender = do
               -- mapM_ 
               --   (\(_, val) -> mapM_ (mapM_ (\(n, r, c) -> print (show r ++ ". " ++ n ++ "   " ++ show c))) val)
               --   (Map.toList pouredRacers)
-              mapM_ print (Map.toList pbResults)
+              --mapM_ print (Map.toList pbResults)
 
               let result = EventAnalResult pouredRacers pbResults
               return (Right result)
@@ -386,8 +520,6 @@ analyzeEvent age_in id gender = do
       Left err -> T.pack $ label ++ " ERROR: " ++ err
       Right val -> T.pack $ label ++ " SUCCESS\n" ++ (func val)
 
-printResuls analysis = undefined
-
 runOrisWithOutput :: IO [Text]
 runOrisWithOutput = do
   -- Run each test and collect results
@@ -406,19 +538,12 @@ runOrisWithOutput = do
   
   return $ map formatResult results
 
--- Helper functions for working with the data
+analyzeRunner :: RegNo -> IO (Either Text [Event])
+analyzeRunner regno = do
+  entries <- extractRacesInfo regno
 
--- | Pretty print JSON response
--- prettyPrintJson :: Value -> IO ()
--- prettyPrintJson = LBS.putStrLn . encodePretty
--- 
--- -- | Extract specific field from JSON response
--- extractField :: Text -> Value -> Maybe Value
--- extractField fieldName (Object obj) = case fromJSON (Object obj) of
---   Success val -> Just val
---   Error _ -> Nothing
--- extractField _ _ = Nothing
--- 
--- -- | Convert CSV records to JSON for easier processing
--- csvToJson :: V.Vector (Map.Map String String) -> Value
--- csvToJson records = Array $ V.map (Object . fromList . map (\(k, v) -> (fromText $ T.pack k, String $ T.pack v)) . Map.toList) records
+  --mapM_ (\ev -> print $ points ev) entries
+
+  return $ case entries of
+     [] -> Left $ T.pack "No entries found."
+     es -> Right $ filter (\ev -> points ev /= 0) es

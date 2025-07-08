@@ -4,6 +4,9 @@
 
 module CSVator where
 
+import Utils
+import Types (Standings, RegNo)
+
 
 import System.FilePath ((</>))
 import System.Directory (createDirectoryIfMissing, doesFileExist)
@@ -23,6 +26,8 @@ import qualified Data.Map as Map
 import qualified Debug.Trace
 import Control.Monad (forM)
 import Data.Either (rights, isRight)
+import Data.Time
+import Data.Time.Format
 
 type CSVRow = Map.Map String String
 type CSVData = V.Vector CSVRow
@@ -43,6 +48,17 @@ rankingUrl = "https://oris.orientacnisporty.cz/ranking_export"
 
 csvDir :: FilePath
 csvDir = "csv_data"
+
+data Gender = Man | Woman deriving (Show, Eq)
+
+genderToString :: Gender -> String
+genderToString Man   = "M"
+genderToString Woman = "F"
+
+stringToGender :: String -> Maybe Gender
+stringToGender "M" = Just Man
+stringToGender "F" = Just Woman
+stringToGender _   = Nothing
 
 csvFileName :: String -> String -> String -> FilePath
 csvFileName gender timePeriod rtype = csvDir </>
@@ -117,26 +133,36 @@ sequenceEithers = sequence
 
 loadCsvsFromFilesByDate :: String -> IO (Either String RankingsData)
 loadCsvsFromFilesByDate sTime = do
-    let loadGender = (\gender -> forM rankingTypes $ \rt -> loadCsvFromFile $ csvFileName gender sTime (show rt))
+    let loadGender =
+                    (\gender ->
+                      forM rankingTypes $ \rt ->
+                        loadCsvFromFile $ csvFileName gender sTime (show rt)
+                    )
 
-    hRankings <- loadGender "M"
-    fRankings <- loadGender "F"
+    let man = genderToString Man
+        woman = genderToString Woman
+
+    hRankings <- loadGender man
+    fRankings <- loadGender woman
 
     case (sequence hRankings, sequence fRankings) of
-        (Right h, Right f) -> return $ Right $ Map.fromList [("M", h), ("F", f)]
+        (Right h, Right f) -> return $ Right $ Map.fromList [(man, h), (woman, f)]
         (Left err, _)      -> return $ Left $ "Failed to load male rankings: " ++ err
         (_, Left err)      -> return $ Left $ "Failed to load female rankings: " ++ err
 
 checkIfCachedCSV :: String -> IO (Bool)
 checkIfCachedCSV date = doesFileExist filename
   where
-    filename = csvFileName "M" date "1"
+    filename = csvFileName (genderToString Man) date "1"
 
 downloadRankings :: String -> IO (Either String RankingsData)
 downloadRankings sTime = do
   mRankings <- try $ do
-    hRankings <- forM rankingTypes $ \i -> downloadAndLoadCsv "M" sTime i
-    fRankings <- forM rankingTypes $ \i -> downloadAndLoadCsv "F" sTime i
+    let man = genderToString Man
+        woman = genderToString Woman
+
+    hRankings <- forM rankingTypes $ \i -> downloadAndLoadCsv man sTime i
+    fRankings <- forM rankingTypes $ \i -> downloadAndLoadCsv woman sTime i
 
     let successfullDownloadsM = rights hRankings
         successfullDownloadsF = rights fRankings
@@ -145,8 +171,8 @@ downloadRankings sTime = do
       then do
         putStrLn "Ranking Data downloaded successfully"
         return $ Right $ Map.fromList [
-            ("M", successfullDownloadsM),
-            ("F", successfullDownloadsF)
+            (man, successfullDownloadsM),
+            (woman, successfullDownloadsF)
             ]
     else
       return $ Left "Failed to download some ranking data"
@@ -154,4 +180,25 @@ downloadRankings sTime = do
   case mRankings of
     Left e -> return $ Left $ "Download rankings failed: " ++ show (e :: SomeException)
     Right result -> return result
+
+lastRankingVersion :: IO (Bool, String)
+lastRankingVersion = do
+  now <- getCurrentTime
+
+  let currentDay = utctDay now
+      lastRanking = lastDayOfPrevMonth currentDay
+      lastRankingStr = formatTime defaultTimeLocale timeFormatStr lastRanking
+  
+  actual <- checkIfCachedCSV lastRankingStr
+
+  return (actual, lastRankingStr)
+
+  
+getRankingsData :: IO (Either String RankingsData)
+getRankingsData = do
+  (actual, lastRankingStr) <- lastRankingVersion
+
+  if actual
+    then loadCsvsFromFilesByDate lastRankingStr
+    else downloadRankings lastRankingStr
 

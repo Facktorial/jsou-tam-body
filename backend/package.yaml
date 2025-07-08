@@ -24,14 +24,18 @@ dependencies:
 library:
   source-dirs: src
   exposed-modules:
-    - Main
     - ORISScrapper
+  other-modules:
+    - CSVator
+    - Types
+    #- Utils
 
 executables:
   data-api:
     main: Main.hs
     source-dirs: src
     ghc-options:
+      - -fdiagnostics-color=always
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N

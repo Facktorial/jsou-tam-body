@@ -28,6 +28,7 @@ type Points = Int
 type PointsBase = Double
 type PointsCoef = Double
 type Coef = Points
+type DisciplineID = Int
 
 data Entry = Entry RegNo Category deriving (Show, Generic, ToJSON)
 
@@ -36,18 +37,27 @@ data RunnerInfo = RunnerInfo
   , runnerName :: Name
   , runnerRankings :: [RankingInfo]
   } deriving (Show, Generic)
+instance ToJSON RunnerInfo  
+instance FromJSON RunnerInfo
 
 data RankingInfo = RankingInfo
   { runnersRank :: Ranking
   , runnersPoints :: Points
   , runnersCoef :: Points 
   } deriving (Show, Generic)
+instance ToJSON RankingInfo  
+instance FromJSON RankingInfo
 
 type CategoryPoints = Map.Map Category [RunnerInfo]
 type RaceEntries = [(Category, [RegNo])]
 
 type ResultRacersMap = Map.Map Int (Map.Map Category [(Name, Ranking, Coef)])
 type ResultCoefsMap  = Map.Map Int (Map.Map Category PointsBase)
+
+newtype Standings = Standings (Map.Map String RunnerInfo)
+  deriving (Show, Generic)
+instance ToJSON Standings
+instance FromJSON Standings
 
 newtype EvName = EvName Text deriving (Show, Generic)
 instance ToJSON EvName
@@ -65,9 +75,11 @@ instance FromJSON Koef
 data EventInfo = EventInfo
   { eventName :: EvName
   , eventDiscipline :: Discipline
+  , eventDisciplineID :: DisciplineID
   , eventPlace :: Place
   , eventKS :: Koef
   , eventKZ :: Koef
+  , eventRanked :: Bool
   } deriving (Show, Generic)
 
 data RacerResult = RacerResult
@@ -81,8 +93,17 @@ data EventAnalResult = EventAnalResult
   , coefs  :: ResultCoefsMap
   } deriving (Show, Generic)
 
-instance ToJSON RankingInfo
-instance ToJSON RunnerInfo  
 instance ToJSON RacerResult
 instance ToJSON EventAnalResult
 instance ToJSON EventInfo
+
+data Event = Event
+  { eventId :: Int
+  , name :: EvName
+  , date :: String
+  , points :: Points
+  , discipline :: Discipline
+  , disciplineID :: DisciplineID
+  } deriving (Generic, Show)
+
+instance ToJSON Event

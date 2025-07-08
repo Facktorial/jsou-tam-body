@@ -1,21 +1,28 @@
 version: "3.8"
 
 services:
-  api:
-    #image: kde-jsou-body-api:latest
-    container_name: kde-jsou-body-api
+  jsou-tam-body-api:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: jsou-tam-body-api
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app:cached # Mount source code
-      - backend-cache:/app/.stack-work # Cache builds
-    environment:
-      - PORT=8000
-    stdin_open: true
-    tty: true
+    restart: unless-stopped
 
-volumes:
-  backend-cache:
+  jsou-tam-body-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: jsou-tam-body-api-dev
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    entrypoint: ["./dev-entrypoint.sh"]
+    # command:
+    #   [
+    #     "ghcid",
+    #     "--command=stack repl data-api:exe:data-api --allow-different-user  --color always",
+    #     "--test=main",
+    #   ]

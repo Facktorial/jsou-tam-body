@@ -1,17 +1,15 @@
-FROM haskell:9.4-slim as builder
+FROM haskell:9.4.8-slim
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y libtinfo-dev
+
 COPY stack.yaml package.yaml ./
-RUN stack build --only-dependencies --system-ghc
+RUN stack setup && stack build --only-dependencies
 
 COPY . .
-RUN stack build --system-ghc --copy-bins --local-bin-path /app/bin
 
-FROM haskell:9.4-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN stack exec -- hpack
+RUN stack build --copy-bins
 
-WORKDIR /app
-COPY --from=builder /app/bin/data-api .
-
-EXPOSE 8000
-CMD ["./data-api"]
+CMD ["./.stack-work/install/x86_64-linux/*/8.*/bin/data-api"]

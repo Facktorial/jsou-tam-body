@@ -1,0 +1,19 @@
+FROM haskell:9.4.8
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y inotify-tools libtinfo-dev
+
+COPY stack.yaml package.yaml ./
+RUN stack setup && stack build --only-dependencies
+
+# Install hpack and generate .cabal file
+RUN stack install hpack
+RUN hpack
+RUN stack install ghcid
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["ghcid", "--command=stack repl data-api:exe:data-api", "--test=main"]

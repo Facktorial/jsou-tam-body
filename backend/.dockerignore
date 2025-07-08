@@ -1,1 +1,63 @@
+# Git and version control
+.git
+.gitignore
+.gitmodules
+
+# Build artifacts
 .stack-work
+dist
+dist-*
+cabal-dev
+*.o
+*.hi
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+.HTF/
+.ghc.environment.*
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Test files
+test/
+tests/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build scripts
+build.sh
+deploy.sh
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Node modules (if any)
+node_modules/
