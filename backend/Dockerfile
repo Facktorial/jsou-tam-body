@@ -22,7 +22,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy ONLY the compiled binary from builder stage
-COPY --from=builder /app/.stack-work/install/x86_64-linux/*/8.*/bin/data-api ./data-api
+#COPY --from=builder /app/.stack-work/install/x86_64-linux/*/8.*/bin/data-api ./data-api
+COPY --from=builder /root/.local/bin/data-api ./data-api
 
 # Make sure it's executable
 RUN chmod +x ./data-api
