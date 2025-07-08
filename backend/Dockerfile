@@ -2,11 +2,12 @@ FROM haskell:9.4.8-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libtinfo-dev
+RUN apt-get update && apt-get install -y inotify-tools libtinfo-dev
 
 COPY stack.yaml package.yaml ./
 RUN stack setup && stack build --only-dependencies
 
+RUN stack install hpack
 COPY . .
 
 RUN stack exec -- hpack

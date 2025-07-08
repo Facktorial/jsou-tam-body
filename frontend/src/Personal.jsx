@@ -16,8 +16,9 @@ const Personal = () => {
   const [selectedRanking, setSelectedRanking] = useState(0);
   const [availableOptions, setAvailableOptions] = useState(null);
   const [requestStatusEvents, setRequestStatusEvents] = useState("idle");
-  //const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app');
-  const [serverUrl, setServerUrl] = useState('http://localhost:8000');
+  // const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app');
+  // const [serverUrl, setServerUrl] = useState('http://localhost:8000');
+  const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
 
   const handleDataReceived = (data) => {
     setServerData(data);
