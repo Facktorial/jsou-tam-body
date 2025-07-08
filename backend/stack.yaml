@@ -1,3 +1,15 @@
 resolver: lts-21.25
 packages:
   - .
+# Build optimizations
+ghc-options:
+  "$locals": -O0 -j4 # No optimizations, parallel build
+  "$targets": -O0 -j4
+  "$everything": -O0 -j4
+
+# Use system ghc if available
+system-ghc: true
+
+# Skip documentation generation
+skip-ghc-check: true
+install-ghc: false

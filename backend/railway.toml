@@ -1,0 +1,7 @@
+[build]
+buildTimeout = 3600 # 1 hour
+
+[deploy]
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
