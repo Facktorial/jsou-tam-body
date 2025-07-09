@@ -19,6 +19,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libtinfo6 \
     libgmp10 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy ONLY the compiled binary from builder stage
