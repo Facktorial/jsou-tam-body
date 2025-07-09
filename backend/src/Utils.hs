@@ -8,6 +8,15 @@ import Debug.Trace
 timeFormatStr :: String
 timeFormatStr = "%Y-%m-%d"
 
+lastDayOfPrevMonth2yrAgo :: Day -> Day
+lastDayOfPrevMonth2yrAgo currentDay =
+    let (year, month, _) = toGregorian currentDay
+        (prevYr, prevMn) = if month <= 1
+                            then (year - 1, 12)
+                            else (year, month)
+        firstDayOfCurrentMonth = fromGregorian (prevYr-2) prevMn 1
+    in addDays (-1) firstDayOfCurrentMonth
+
 lastDayOfPrevMonth :: Day -> Day
 lastDayOfPrevMonth currentDay = 
     let (year, month, _) = toGregorian currentDay
