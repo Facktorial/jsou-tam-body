@@ -11,9 +11,10 @@ const LegendForm = ({
   setLoading,
   requestStatusEvents,
   setRequestStatusEvents,
-  setAvailableOptions
+  setAvailableOptions,
+  runnerId,
+  setRunnerId
 }) => {
-  const [runnerId, setRunnerId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -44,11 +45,13 @@ const LegendForm = ({
       return;
     }
 
+    const runnerRegno = runnerId.toUpperCase();
+
     setIsLoading(true);
     setError(null);
 
-    const requestUrl = `${serverUrl}/api/backgroundcheck/standings/${runnerId}`;
-    const requestUrlEvents = `${serverUrl}/api/backgroundcheck/${runnerId}`;
+    const requestUrl = `${serverUrl}/api/backgroundcheck/standings/${runnerRegno}`;
+    const requestUrlEvents = `${serverUrl}/api/backgroundcheck/${runnerRegno}`;
     console.log('Sending runner request to:', requestUrl);
     console.log('Sending runner request to:', requestUrlEvents);
 
@@ -75,7 +78,8 @@ const LegendForm = ({
           onDataReceived(data);
           if (data) {
             const rankingTypes = extractRankingTypesFromResponse(data);
-            console.table(rankingTypes);
+            //console.log('rankingTypes:');
+            //console.table(rankingTypes);
             const updatedOptions = {
               success: true,
               rankingTypes: rankingTypes
@@ -86,6 +90,7 @@ const LegendForm = ({
         .catch(error => {
           console.error('Error fetching runner data:', error);
           setLoading(prev => ({ ...prev, runner: false }));
+          onRacesReceived({ error : error, success : false });
         });
 
       // Handle second request completion
@@ -100,6 +105,7 @@ const LegendForm = ({
         .catch(error => {
           console.error('Error fetching races data:', error);
           setLoading(prev => ({ ...prev, races: false }));
+          onRacesReceived({ error : error, success : false });
         });
 
     } catch (error) {
@@ -136,12 +142,12 @@ const LegendForm = ({
         </div>
       </form>
 
-      {error && (
+      {(error || serverData?.success == false) && (
         <StatusMessages
-          requestStatus={"hovno"}
-          id={-1}
-          response={serverData}
-          availableOptions={"nope"}
+          requestStatus={serverData.error}
+          id={runnerId}
+          response={serverData.message}
+          availableOptions={null}
           serverData={serverData}
         />
       )}

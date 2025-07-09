@@ -18,8 +18,8 @@ export default function KolikTamJeBoduView() {
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [requestStatus, setRequestStatus] = useState('idle');
-  //const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app')
-  const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
+  const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app')
+  //const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [forcingAge, setForcingAge] = useState(true);
   const [enabledPredictor, setEnablingPredictor] = useState(true);

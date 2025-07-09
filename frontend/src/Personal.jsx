@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import LegendForm from "./components/Legend";
 import EventList from "./components/EventList";
 import RunnerRankingsHistogram from "./components/RunnerRankingsHistogram";
+import StatusMessages from "./components/StatusMessage"
 
 
 const Personal = () => {
   const navigate = useNavigate();
+  const [runnerId, setRunnerId] = useState('');
   const [serverData, setServerData] = useState(null);
   const [racesData, setRacesData] = useState(null);
+  const [fetchSuccess, setFetchSuccess] = useState(false);
   const [loading, setLoading] = useState({
     runnerLoaded: false,
     racesLoaded: false
@@ -16,14 +19,18 @@ const Personal = () => {
   const [selectedRanking, setSelectedRanking] = useState(0);
   const [availableOptions, setAvailableOptions] = useState(null);
   const [requestStatusEvents, setRequestStatusEvents] = useState("idle");
-  // const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app');
-  // const [serverUrl, setServerUrl] = useState('http://localhost:8000');
-  const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
+  const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app');
+  //const [serverUrl, setServerUrl] = useState('http://localhost:8000');
+  //const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
 
   const handleDataReceived = (data) => {
     setServerData(data);
     setLoading(prev => ({ ...prev, runnerLoaded: false }));
-    console.log('Received runner data:', data);
+    console.log('Received runner data:', data?.success);
+    setFetchSuccess(data?.success);
+
+    console.log({fetchSuccess});
+    console.log({data});
   };
 
   const handleRacesReceived = (data) => {
@@ -31,12 +38,15 @@ const Personal = () => {
     setLoading(prev => ({ ...prev, racesLoaded: false }));
     console.log('Received races data:', data);
     setRequestStatusEvents('success')
+    setFetchSuccess(data?.success);
   };
 
-  const gender = serverData?["standings"]["runnerName"] !== "unknown - FIXME "
-    ? "M" : "F" : "";
+  const gender = setServerData && serverData && serverData["standings"] && serverData["standings"]["M"]
+    ? serverData["standings"]["M"]["runnerName"] === "unknown - FIXME "
+      ? "F" : "M"
+    : "";
 
-  const rankingsData = serverData
+  const rankingsData = serverData && serverData.rankingTypes
     ? Object.values(serverData["rankingtypes"]["Data"])
     : {};
 
@@ -81,9 +91,11 @@ const Personal = () => {
             requestStatusEvents={requestStatusEvents}
             setRequestStatusEvents={setRequestStatusEvents}
             setAvailableOptions={setAvailableOptions}
+            runnerId={runnerId}
+            setRunnerId={setRunnerId}
           />
-      
-          {serverData && (
+
+          {serverData && fetchSuccess && (
             <RunnerRankingsHistogram
               runnerData={serverData["standings"][gender]}
               rankingsData={rankingsData}
@@ -94,14 +106,16 @@ const Personal = () => {
             />
           )}
 
-          {(serverData && !racesData) && (
+          {(serverData && !racesData) && fetchSuccess && (
             <div class="mb-4 mt-4">
             <div className="text-yellow-400 text-center py-4">
               Loading runner data...
+              <div className="font-mono text-xs">Don't worry, if u see chart...</div>
+              <div className="font-mono text-xs">...u will get ur data  ...eventually</div>
             </div></div>
           )}
       
-          {racesData && (
+          {racesData && fetchSuccess && (
             <select
               value={selectedRanking}
               onChange={(e) => setSelectedRanking(e.target.value)}
@@ -123,7 +137,7 @@ const Personal = () => {
             </select>
           )}
 
-          {racesData && (
+          {racesData && availableOptions?.rankingTypes && fetchSuccess &&  (
             <div className="mt-6">
                 <h4 className="text-yellow-400 font-mono">
                   Results history:
@@ -166,6 +180,16 @@ const Personal = () => {
 
 export default Personal;
       
+          // {(serverData && !fetchSuccess) && (
+          //   <StatusMessages
+          //     requestStatus={serverData.error}
+          //     id={runnerId}
+          //     response={serverData.message}
+          //     availableOptions={null}
+          //     serverData={serverData}
+          //   />
+          // )}
+
      //     {serverData && (
      //       <div className="mt-6 p-4 bg-gray-900 rounded border border-yellow-600">
      //         <h3 className="text-yellow-400 font-bold mb-2">Runner Data:</h3>

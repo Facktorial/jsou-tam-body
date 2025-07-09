@@ -1,6 +1,6 @@
 const StatusMessages = ({ requestStatus, id, response, availableOptions, serverData, getRunners }) => {
-  if (requestStatus === 'error') {
-    console.log(serverData);
+  if (requestStatus === 'error' || !serverData?.success) {
+    //console.log(serverData?);
     return (
       <div className="p-3 bg-red-900 border border-red-600 rounded">
         <p className="text-red-400 font-mono">

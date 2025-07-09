@@ -14,6 +14,8 @@ const ServerConfig = ({ serverUrl, setServerUrl, showConfig, setShowConfig, forc
     console.log(event);
   };
 
+  console.log(serverUrl);
+
   return (
     <div className="mb-4 p-3 bg-gray-900 border border-yellow-600 rounded">
       <div className="flex justify-between items-center mb-4">
