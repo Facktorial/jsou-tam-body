@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/jsou-tam-body/static/css/main.ba07e65b.css",
-    "main.js": "/jsou-tam-body/static/js/main.d732261d.js",
+    "main.js": "/jsou-tam-body/static/js/main.fd556a32.js",
     "static/js/453.d855a71b.chunk.js": "/jsou-tam-body/static/js/453.d855a71b.chunk.js",
     "index.html": "/jsou-tam-body/index.html",
     "main.ba07e65b.css.map": "/jsou-tam-body/static/css/main.ba07e65b.css.map",
-    "main.d732261d.js.map": "/jsou-tam-body/static/js/main.d732261d.js.map",
+    "main.fd556a32.js.map": "/jsou-tam-body/static/js/main.fd556a32.js.map",
     "453.d855a71b.chunk.js.map": "/jsou-tam-body/static/js/453.d855a71b.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.ba07e65b.css",
-    "static/js/main.d732261d.js"
+    "static/js/main.fd556a32.js"
   ]
 }
