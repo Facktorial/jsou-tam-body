@@ -87,6 +87,12 @@ getEventEntries eventId cls = makeJsonApiRequest "getEventEntries" params
      baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
+getEventResults :: Int -> Category -> IO (Either String Value)
+getEventResults eventId cls = makeJsonApiRequest "getEventResults" params
+   where
+     baseParams = [("eventid", show eventId)]
+     params = if null cls then baseParams else ("classname", cls) : baseParams
+
 -- getEventResults :: Int -> IO (Either String Value)
 -- getEventResults eventId = makeApiRequest baseUrl params
 --   where
@@ -166,6 +172,12 @@ extractRacesInfo regno = do
       case KM.lookup "Data" obj of
         Just (Object dataObj) -> do
           let eventList = map snd (KM.toList dataObj)
+          Debug.Trace.traceShow 
+            (map
+              (\(Object x) -> T.unpack $ extractText "EventID" x)
+              eventList
+            )
+            (return ())
           mapM processEvent eventList
         _ -> return []
     _ -> return []
@@ -446,7 +458,7 @@ analyzeEvent age_in id gender = do
     case categoriesResult of
       Left err -> return (Left $ T.pack err)
       Right categories -> do
-          entriesRaw <- mapM (\cls -> getEventEntries id cls) categories
+          entriesRaw <- mapM (\cls -> getEventResults id cls) categories
 
           --let _hole = entriesRaw :: _
           let entries =  mapM makeEntries (rights entriesRaw) 
@@ -543,6 +555,8 @@ analyzeRunner regno = do
   entries <- extractRacesInfo regno
 
   --mapM_ (\ev -> print $ points ev) entries
+  --mapM_ (\ev -> print $ points ev) entries
+  --mapM_ (\ev -> print $ ev) entries
 
   return $ case entries of
      [] -> Left $ T.pack "No entries found."

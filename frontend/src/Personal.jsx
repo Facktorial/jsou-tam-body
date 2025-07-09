@@ -125,7 +125,12 @@ const Personal = () => {
           {racesData && fetchSuccess && (
             <select
               value={selectedRanking}
-              onChange={(e) => setSelectedRanking(e.target.value)}
+              onChange={(e) => {
+                console.log("onChange: ", e);
+                if (e) {
+                  setSelectedRanking(e.target.value);
+                }
+              }}
               disabled={requestStatusEvents !== 'success'}
               className={`w-full p-2 mt-2 mb-2 rounded font-mono focus:outline-none focus:ring-2 ${
                 requestStatusEvents !== 'success' 

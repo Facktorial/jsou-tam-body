@@ -6,8 +6,6 @@ const RunnerRankingsHistogram = ({
     rankingType,
     setRankingType
 }) => {
-  console.log(runnerData);
-  console.log(rankingsData);
   if (!runnerData || !runnerData.runnerRankings || !rankingsData) { return null; }
   //if (!rankingsData) { return null; }
 
@@ -31,7 +29,6 @@ const RunnerRankingsHistogram = ({
     const invertedRank = maxRank - ranking.runnersRank + barHeightOffset;
 
     console.log(index);
-    console.table({rankingsData});
     
     return {
       name: rankingsData[index].NameCZ,
