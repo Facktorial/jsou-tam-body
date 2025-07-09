@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import Personal from './Personal';
@@ -8,14 +8,14 @@ import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <BrowserRouter basename="/jsou-tam-body">
+  <HashRouter>
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/:eventId/:gender/:forceAge?" element={<App />} />
       <Route path="/personal" element={<Personal />} />
       <Route path="/personal/:runnerId/" element={<Personal />} />
     </Routes>
-  </BrowserRouter>
+  </HashRouter>
 );
 
 // If you want to start measuring performance in your app, pass a function
