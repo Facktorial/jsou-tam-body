@@ -9,6 +9,8 @@ import Utils
 
 import Network.HTTP.Simple
 import Data.Aeson
+import Data.Time.Format
+import Data.Time
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Aeson.Key as K
 import Data.Aeson.Encode.Pretty (encodePretty)
@@ -87,10 +89,10 @@ getEventEntries eventId cls = makeJsonApiRequest "getEventEntries" params
      baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
-getEventResults :: Int -> Category -> IO (Either String Value)
-getEventResults eventId cls = makeJsonApiRequest "getEventResults" params
+getEventResults :: Int -> Category -> String -> IO (Either String Value)
+getEventResults eventId cls dateFrom = makeJsonApiRequest "getEventResults" params
    where
-     baseParams = [("eventid", show eventId)]
+     baseParams = [("eventid", show eventId), ("datefrom", dateFrom)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
 -- getEventResults :: Int -> IO (Either String Value)
@@ -454,11 +456,16 @@ analyzeEvent :: Age -> Int -> String -> IO (Either Text EventAnalResult)
 analyzeEvent age_in id gender = do    
     eventResult <- getEvent id
     categoriesResult <- handleEvents eventResult
+    now <- getCurrentTime
+
+    let currentDay = utctDay now
+        dayFrom    = lastDayOfPrevMonth2yrAgo currentDay
+        dateFrom   = formatTime defaultTimeLocale timeFormatStr dayFrom
 
     case categoriesResult of
       Left err -> return (Left $ T.pack err)
       Right categories -> do
-          entriesRaw <- mapM (\cls -> getEventResults id cls) categories
+          entriesRaw <- mapM (\cls -> getEventResults id cls dateFrom) categories
 
           --let _hole = entriesRaw :: _
           let entries =  mapM makeEntries (rights entriesRaw) 
