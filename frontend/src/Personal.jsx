@@ -11,6 +11,7 @@ const Personal = () => {
   const [runnerId, setRunnerId] = useState('');
   const [serverData, setServerData] = useState(null);
   const [racesData, setRacesData] = useState(null);
+  const [rankingsData, setRankingsData] = useState(null);
   const [fetchSuccess, setFetchSuccess] = useState(false);
   const [loading, setLoading] = useState({
     runnerLoaded: false,
@@ -20,7 +21,7 @@ const Personal = () => {
   const [availableOptions, setAvailableOptions] = useState(null);
   const [requestStatusEvents, setRequestStatusEvents] = useState("idle");
   const [serverUrl, setServerUrl] = useState('https://empowering-connection-dev.up.railway.app');
-  //const [serverUrl, setServerUrl] = useState('http://localhost:8000');
+  // const [serverUrl, setServerUrl] = useState('http://localhost:8000');
   //const [serverUrl, setServerUrl] = useState(process.env.REACT_APP_API_URL);
 
   const handleDataReceived = (data) => {
@@ -28,6 +29,12 @@ const Personal = () => {
     setLoading(prev => ({ ...prev, runnerLoaded: false }));
     console.log('Received runner data:', data?.success);
     setFetchSuccess(data?.success);
+
+    if (data)
+    {
+      setRankingsData(Object.values(data["rankingtypes"]["Data"]));
+    }
+    console.log("rankingsData: ", rankingsData);
 
     console.log({fetchSuccess});
     console.log({data});
@@ -46,9 +53,9 @@ const Personal = () => {
       ? "F" : "M"
     : "";
 
-  const rankingsData = serverData && serverData.rankingTypes
-    ? Object.values(serverData["rankingtypes"]["Data"])
-    : {};
+  //const rankingsData = serverData && serverData.rankingTypes
+    //? Object.values(serverData["rankingtypes"]["Data"])
+    //: {};
 
   const events = racesData
     ? racesData["events"]

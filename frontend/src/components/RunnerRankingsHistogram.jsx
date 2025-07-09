@@ -6,9 +6,10 @@ const RunnerRankingsHistogram = ({
     rankingType,
     setRankingType
 }) => {
-  if (!runnerData || !runnerData.runnerRankings) { return null; }
-  //if (!rankingsData) { return null; }
+  console.log(runnerData);
   console.log(rankingsData);
+  if (!runnerData || !runnerData.runnerRankings || !rankingsData) { return null; }
+  //if (!rankingsData) { return null; }
 
   const barHeightOffset = 10;
 
@@ -28,6 +29,9 @@ const RunnerRankingsHistogram = ({
     // Invert the rank so that #1 (best) appears highest
     const maxRank = Math.max(...runnerData.runnerRankings.map(r => r.runnersRank));
     const invertedRank = maxRank - ranking.runnersRank + barHeightOffset;
+
+    console.log(index);
+    console.table({rankingsData});
     
     return {
       name: rankingsData[index].NameCZ,
