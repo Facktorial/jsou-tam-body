@@ -90,8 +90,8 @@ getEventEntries eventId cls = makeJsonApiRequest "getEventEntries" params
      baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
-getEventStartList :: Int -> Category -> IO (Either String Value)
-getEventStartList eventId cls = makeJsonApiRequest "getEventStartLists" params
+getEventStartLists :: Int -> Category -> IO (Either String Value)
+getEventStartLists eventId cls = makeJsonApiRequest "getEventStartLists" params
    where
      baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
@@ -473,7 +473,7 @@ analyzeEvent age_in id gender = do
       Left err -> return (Left $ T.pack err)
       Right categories -> do
           --entriesRaw <- mapM (\cls -> getEntriesRaw id cls) categories
-          entriesRaw <- mapM (\cls -> getEventEntries id cls) categories
+          entriesRaw <- mapM (\cls -> getEventStartLists id cls) categories
           entriesRaw' <- if all (\case 
                     Right (Object obj) -> case KM.lookup "Data" obj of
                       Just (Array arr) -> null arr
@@ -481,7 +481,7 @@ analyzeEvent age_in id gender = do
                     Right _ -> False  -- Other JSON types
                     Left _ -> True    -- Errors don't count
                     ) entriesRaw
-               then mapM (\cls -> getEventStartList id cls) categories
+               then mapM (\cls -> getEventEntries id cls) categories
                else return entriesRaw
 
           --let _hole = entriesRaw :: _
