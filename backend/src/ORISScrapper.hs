@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 
 module ORISScrapper where
 import CSVator
@@ -89,10 +90,16 @@ getEventEntries eventId cls = makeJsonApiRequest "getEventEntries" params
      baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
-getEventResults :: Int -> Category -> String -> IO (Either String Value)
-getEventResults eventId cls dateFrom = makeJsonApiRequest "getEventResults" params
+getEventStartList :: Int -> Category -> IO (Either String Value)
+getEventStartList eventId cls = makeJsonApiRequest "getEventStartLists" params
    where
-     baseParams = [("eventid", show eventId), ("datefrom", dateFrom)]
+     baseParams = [("eventid", show eventId)]
+     params = if null cls then baseParams else ("classname", cls) : baseParams
+
+getEventResults :: Int -> Category -> IO (Either String Value)
+getEventResults eventId cls = makeJsonApiRequest "getEventResults" params
+   where
+     baseParams = [("eventid", show eventId)]
      params = if null cls then baseParams else ("classname", cls) : baseParams
 
 -- getEventResults :: Int -> IO (Either String Value)
@@ -131,10 +138,10 @@ getPoints eventId regno = do
       T.unpack (extractText "RegNo" userResults) == targetUserId
     isMatchingUser _ _ = False
 
-getUserEventEntries :: String -> IO (Either String Value)
-getUserEventEntries userId = makeJsonApiRequest "getUserEventEntries" params
+getUserEventEntries :: String -> String -> IO (Either String Value)
+getUserEventEntries userId dateFrom = makeJsonApiRequest "getUserEventEntries" params
   where
-    params = [("userid", userId)]
+    params = [("userid", userId), ("datefrom", dateFrom)]
 
 getUserID :: RegNo -> IO (Maybe String)
 getUserID regno = do
@@ -147,12 +154,12 @@ getUserID regno = do
         _ -> Nothing
     _ -> Nothing
 
-getUserEntries :: RegNo -> IO (Either String Value)
-getUserEntries regno = do
+getUserEntries :: RegNo -> String -> IO (Either String Value)
+getUserEntries regno dateFrom = do
   mUserId <- getUserID regno
   
   case mUserId of
-    Just userId -> getUserEventEntries userId 
+    Just userId -> getUserEventEntries userId dateFrom
     _ -> return $ Left "No such looser"
 
 extractText :: KM.Key -> KM.KeyMap Value -> Text
@@ -166,7 +173,13 @@ readDoubleFromCSV = readMaybe . T.unpack . T.replace "," "."
 
 extractRacesInfo :: RegNo -> IO ([Event])
 extractRacesInfo regno = do
-  events <- getUserEntries regno
+  now <- getCurrentTime
+
+  let currentDay = utctDay now
+      dayFrom    = lastDayOfPrevMonth2yrAgo currentDay
+      dateFrom   = formatTime defaultTimeLocale timeFormatStr dayFrom
+
+  events <- getUserEntries regno dateFrom
 
   case events of
     Right (Object obj) ->
@@ -456,19 +469,23 @@ analyzeEvent :: Age -> Int -> String -> IO (Either Text EventAnalResult)
 analyzeEvent age_in id gender = do    
     eventResult <- getEvent id
     categoriesResult <- handleEvents eventResult
-    now <- getCurrentTime
-
-    let currentDay = utctDay now
-        dayFrom    = lastDayOfPrevMonth2yrAgo currentDay
-        dateFrom   = formatTime defaultTimeLocale timeFormatStr dayFrom
-
     case categoriesResult of
       Left err -> return (Left $ T.pack err)
       Right categories -> do
-          entriesRaw <- mapM (\cls -> getEventResults id cls dateFrom) categories
+          --entriesRaw <- mapM (\cls -> getEntriesRaw id cls) categories
+          entriesRaw <- mapM (\cls -> getEventEntries id cls) categories
+          entriesRaw' <- if all (\case 
+                    Right (Object obj) -> case KM.lookup "Data" obj of
+                      Just (Array arr) -> null arr
+                      _ -> False
+                    Right _ -> False  -- Other JSON types
+                    Left _ -> True    -- Errors don't count
+                    ) entriesRaw
+               then mapM (\cls -> getEventStartList id cls) categories
+               else return entriesRaw
 
           --let _hole = entriesRaw :: _
-          let entries =  mapM makeEntries (rights entriesRaw) 
+          let entries =  mapM makeEntries (rights entriesRaw') 
           let entriesResult = zip categories (concat $ rights [entries])
 
           rankings <- getActualRankings getLastRankingVersion
@@ -523,6 +540,11 @@ analyzeEvent age_in id gender = do
 
   where 
     age = if age_in > 0 then show age_in else ""
+
+    -- getEntriesRaw id cls = return $ case getEventEntries id cls of 
+    --      Right (Object obj) | Just (Array arr) <- lookup "Data" obj, null arr ->
+    --        Right $ mapM (\cls -> getEventStartList id cls) categories
+    --      _ -> Left $ entriesRaw
 
     handleEvents (Left err) = return $ Left $ "Failed to get event: " ++ err
     handleEvents (Right event) = handleCategories (getCategories event)
