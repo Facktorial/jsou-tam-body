@@ -36,6 +36,12 @@ import qualified Data.Vector as V
 import Data.List (sortBy)
 import Data.Ord (comparing, Down(..))
 
+data ClassInfo = ClassInfo
+  { className :: Text
+  , hasResults :: Bool
+  , resultsCount :: Int
+  } deriving (Show)
+
 pbCount :: Int
 pbCount = 4
 
@@ -107,14 +113,15 @@ getEventResults eventId cls = makeJsonApiRequest "getEventResults" params
 --   where
 --     params = [("format", "json"), ("method", "getEventResults"), ("eventid", show eventId)]
 
-getEventRankResults :: Int -> IO (Either String Value)
-getEventRankResults eventId = makeJsonApiRequest "getEventRankResults" params
+getEventRankResults :: Int -> Category -> IO (Either String Value)
+getEventRankResults eventId cls = makeJsonApiRequest "getEventRankResults" params
   where
-    params = [("eventid", show eventId)]
+     baseParams = [("eventid", show eventId)]
+     params = if null cls then baseParams else ("classname", cls) : baseParams
 
-getPoints :: Int -> RegNo -> IO Int
-getPoints eventId regno = do
-  results <- getEventRankResults eventId
+getPoints :: Int -> RegNo -> Category -> IO Int
+getPoints eventId regno cls = do
+  results <- getEventRankResults eventId cls
 
   case results of
     Right (Object obj) -> do
@@ -198,18 +205,18 @@ extractRacesInfo regno = do
     _ -> return []
   where
     processEvent :: Value -> IO (Event)
-    processEvent (Object event) = do
+    processEvent (Object event) = do 
       let evId    = read $ T.unpack $ extractText "EventID" event
           classID =        T.unpack $ extractText "ClassID" event
           evDate  =        T.unpack $ extractText "EventDate" event
-      --Debug.Trace.traceShow ("     +++++" ++ show event) (return ())
+      Debug.Trace.traceIO ("     +++++" ++ show event) --(return ()) -- FIXME:
 
       mbEvent <- extractEventInfo evId classID
 
       toFilterByDate <- checkWithinTwoYears evDate
 
       points <- if (toFilterByDate && maybe False eventRanked mbEvent)
-                    then getPoints evId regno
+                    then getPoints evId regno "" -- FIXME: feed right class
                     else return 0
 
       case mbEvent of
@@ -255,17 +262,22 @@ extractEventInfo eventId classID = do
                 1.00
                 id
                 (readDoubleFromCSV $ extractText "RankingKoef" dataObj)
+              getClass = case KM.lookup "Classes" dataObj of
+                Just (Object cls) -> 
+                  any (\(Object classObj) -> T.unpack (extractText "Ranking" classObj) == "1") 
+                      (KM.elems cls)
+                _ -> False
               isRanked = case classID of
-                "" -> False
-                clsID ->
+                "" -> getClass
+                clsID -> Debug.Trace.traceShow "onto something 0" $ 
                   case KM.lookup "Classes" dataObj of
                     Just (Object cls) ->
                       --Debug.Trace.traceShow cls $
                       --Debug.Trace.traceShow clsID $
                       case KM.lookup (K.fromText $ T.pack $ "Class_" ++ clsID) cls of
                         Just (Object raceCls) -> (T.unpack $ extractText "Ranking" raceCls) == "1"
-                        _ -> False
-                    _ -> False
+                        _ -> Debug.Trace.traceShow "onto something" $ False
+                    _ -> Debug.Trace.traceShow "onto something 2" $ False
 
           return $ Just (EventInfo name disc discID plac ks kz isRanked)
         _ -> return Nothing
@@ -468,12 +480,74 @@ getRacer rT info = RacerResult name rank coef
 analyzeEvent :: Age -> Int -> String -> IO (Either Text EventAnalResult)
 analyzeEvent age_in id gender = do    
     eventResult <- getEvent id
+    
+    now <- getCurrentTime
+    let currentDay = utctDay now
+        dayFrom    = lastDayOfPrevMonth currentDay
+        dateFrom   = formatTime defaultTimeLocale timeFormatStr dayFrom
+
+    let rankingsDate = case eventResult of
+          Right (Object obj) -> case KM.lookup "Data" obj of
+            Just (Object dataObj) -> T.unpack $ extractText "RankingDecisionDate" dataObj
+            _ -> dateFrom
+          _ -> dateFrom
+
     categoriesResult <- handleEvents eventResult
     case categoriesResult of
       Left err -> return (Left $ T.pack err)
       Right categories -> do
           --entriesRaw <- mapM (\cls -> getEntriesRaw id cls) categories
-          entriesRaw <- mapM (\cls -> getEventStartLists id cls) categories
+          --evDate  =        T.unpack $ extractText "EventDate" event
+          --resultsByCategories = map hasCategoryResults categories 
+          let hasCategoriesResults (Right obj) = map
+                                          (\x -> if isJust x
+                                                    then hasResults $ fromJust x
+                                                    else False
+                                          )
+                                          (getClassesByNames
+                                              (map T.pack categories)
+                                              obj
+                                          )
+              
+              parseClassInfo :: Value -> ClassInfo
+              parseClassInfo (Object classObj) = 
+                ClassInfo
+                  { className = extractName classObj
+                  , hasResults = extractResultsCount classObj > 0
+                  , resultsCount = extractResultsCount classObj
+                  }
+                where
+                  extractName obj = case KM.lookup "Name" obj of
+                    Just (String name) -> name
+                    _ -> "Unknown"
+                  
+                  extractResultsCount obj = case KM.lookup "CurrentResultsCount" obj of
+                    Just (String count) -> read (T.unpack count) :: Int
+                    _ -> 0
+              parseClassInfo _ = ClassInfo "Unknown" False 0
+
+              extractClassInfo :: Value -> [ClassInfo]
+              extractClassInfo (Object obj) = 
+                case KM.lookup "Data" obj of
+                  Just (Object dataObj) -> 
+                    case KM.lookup "Classes" dataObj of
+                      Just (Object classes) -> 
+                        map parseClassInfo (KM.elems classes)
+                      _ -> []
+                  _ -> []
+              extractClassInfo _ = []
+
+              getClassesByNames :: [Text] -> Value -> [Maybe ClassInfo]
+              getClassesByNames targetNames json = 
+                    case extractClassInfo json of
+                      classes -> map
+                                  (\targetName -> find (\c -> className c == targetName) classes)
+                                  targetNames
+
+          entriesRaw <- mapM (\(cls, hasResults) -> if hasResults 
+                                                    then getEventResults id cls
+                                                    else getEventStartLists id cls)
+                             (zip categories (hasCategoriesResults eventResult)) 
           entriesRaw' <- if all (\case 
                     Right (Object obj) -> case KM.lookup "Data" obj of
                       Just (Array arr) -> null arr
@@ -488,7 +562,8 @@ analyzeEvent age_in id gender = do
           let entries =  mapM makeEntries (rights entriesRaw') 
           let entriesResult = zip categories (concat $ rights [entries])
 
-          rankings <- getActualRankings getLastRankingVersion
+          --rankings <- getActualRankings getLastRankingVersion
+          rankings <- getActualRankings rankingsDate
           case rankings of
             Left err -> return (Left $ T.pack err)
             Right ranks -> do
