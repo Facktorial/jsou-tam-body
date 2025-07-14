@@ -1,5 +1,5 @@
 # Build stage - this will be discarded
-FROM haskell:9.4.8-bullseye as builder
+FROM haskell:9.4.8 as builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y libtinfo-dev
 
